@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "../lib/queryClient";
 import PokerGame from "./PokerGame";
 import JoinGameForm from "./JoinGameForm";
 
@@ -9,7 +12,7 @@ interface User {
     name: string;
 }
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
     const [currentView, setCurrentView] = useState<ViewType>("home");
     const [gameId, setGameId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
@@ -100,6 +103,15 @@ const App: React.FC = () => {
                 </div>
             </div>
         </div>
+    );
+};
+
+const App: React.FC = () => {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <AppContent />
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
     );
 };
 export default App;
