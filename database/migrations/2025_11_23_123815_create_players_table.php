@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('game_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null'); // Optional link to authenticated user
             $table->string('session_id')->nullable(); // For guest players
             $table->boolean('is_moderator')->default(false);
             $table->timestamp('last_seen_at')->nullable();

@@ -99,6 +99,7 @@ export interface CreateStoryRequest {
 
 export interface SubmitVoteRequest {
     point_value_id: number;
+    player_id: number;
 }
 
 // API Response wrapper

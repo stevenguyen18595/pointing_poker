@@ -1,6 +1,6 @@
 import React from "react";
 
-interface CardProps {
+interface CardProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     value: string | number;
     isSelected: boolean;
     onClick: () => void;

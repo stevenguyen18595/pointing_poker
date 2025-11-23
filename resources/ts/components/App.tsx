@@ -4,52 +4,91 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "../lib/queryClient";
 import PokerGame from "./PokerGame";
 import JoinGameForm from "./JoinGameForm";
+import { useCreateGame, useJoinGame } from "../queries/games";
 
-type ViewType = "home" | "join" | "game";
+type ViewType = "home" | "join" | "game" | "create";
 
 interface User {
     id: string;
     name: string;
 }
 
+interface Game {
+    id: string;
+    gameCode: string;
+    name: string;
+}
+
 const AppContent: React.FC = () => {
     const [currentView, setCurrentView] = useState<ViewType>("home");
-    const [gameId, setGameId] = useState<string | null>(null);
+    const [gameData, setGameData] = useState<Game | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
-    const createGame = (): void => {
+    const createGameMutation = useCreateGame();
+    const joinGameMutation = useJoinGame();
+
+    const handleCreateGame = async (): Promise<void> => {
         const userName = prompt("Enter your name:");
-        if (!userName) return;
+        const gameName = prompt("Enter game name:");
+        if (!userName || !gameName) return;
 
-        const newUser: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: userName,
-        };
+        try {
+            const response = await createGameMutation.mutateAsync({
+                name: gameName,
+                description: `Planning poker session for ${gameName}`,
+            });
 
-        const newGameId = Math.random().toString(36).substr(2, 9);
-        setUser(newUser);
-        setGameId(newGameId);
-        setCurrentView("game");
+            const newUser: User = {
+                id: Math.random().toString(36).substr(2, 9),
+                name: userName,
+            };
+
+            setUser(newUser);
+            setGameData({
+                id: response.id.toString(),
+                gameCode: response.game_code,
+                name: response.name,
+            });
+            setCurrentView("game");
+        } catch (error) {
+            alert("Failed to create game. Please try again.");
+        }
     };
 
     const showJoinForm = (): void => {
         setCurrentView("join");
     };
 
-    const handleJoinGame = (gameId: string, userName: string): void => {
-        const newUser: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: userName,
-        };
+    const handleJoinGame = async (
+        gameCode: string,
+        userName: string
+    ): Promise<void> => {
+        try {
+            const response = await joinGameMutation.mutateAsync({
+                game_code: gameCode,
+                player_name: userName,
+            });
 
-        setUser(newUser);
-        setGameId(gameId);
-        setCurrentView("game");
+            const newUser: User = {
+                id: response.player.id.toString(),
+                name: response.player.name,
+            };
+
+            setUser(newUser);
+            setGameData({
+                id: response.game.id.toString(),
+                gameCode: response.game.game_code,
+                name: response.game.name,
+            });
+            setCurrentView("game");
+        } catch (error) {
+            alert("Failed to join game. Please check the game code.");
+        }
     };
 
     const backToHome = (): void => {
         setCurrentView("home");
-        setGameId(null);
+        setGameData(null);
         setUser(null);
     };
 
@@ -57,7 +96,7 @@ const AppContent: React.FC = () => {
         return <JoinGameForm onJoin={handleJoinGame} onBack={backToHome} />;
     }
 
-    if (currentView === "game" && gameId && user) {
+    if (currentView === "game" && gameData && user) {
         return (
             <div className="min-h-screen bg-gray-100 py-8">
                 <div className="container mx-auto">
@@ -68,10 +107,15 @@ const AppContent: React.FC = () => {
                         >
                             ← Back to Home
                         </button>
-                        <p className="text-gray-600 mt-2">Game ID: {gameId}</p>
+                        <p className="text-gray-600 mt-2">
+                            Game: {gameData.name}
+                        </p>
+                        <p className="text-gray-600">
+                            Code: {gameData.gameCode}
+                        </p>
                         <p className="text-gray-600">Welcome, {user.name}!</p>
                     </div>
-                    <PokerGame gameId={gameId} user={user} />
+                    <PokerGame gameId={gameData.id} user={user} />
                 </div>
             </div>
         );
@@ -85,10 +129,13 @@ const AppContent: React.FC = () => {
                 </h1>
                 <div className="space-y-4">
                     <button
-                        onClick={createGame}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                        onClick={handleCreateGame}
+                        disabled={createGameMutation.isPending}
+                        className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
                     >
-                        Create New Game
+                        {createGameMutation.isPending
+                            ? "Creating..."
+                            : "Create New Game"}
                     </button>
                     <button
                         onClick={showJoinForm}
@@ -114,4 +161,5 @@ const App: React.FC = () => {
         </QueryClientProvider>
     );
 };
+
 export default App;

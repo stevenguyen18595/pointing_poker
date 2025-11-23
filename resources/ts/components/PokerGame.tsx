@@ -1,5 +1,11 @@
 import React, { useState } from "react";
 import Card from "./Card";
+import { useGame } from "../queries/games";
+import { usePlayers } from "../queries/players";
+import { useStories } from "../queries/stories";
+import { usePointValues } from "../queries/pointValues";
+import { useVotes, useSubmitVote, useRevealVotes } from "../queries/votes";
+import type { Story, Player, PointValue, Vote } from "../types/api";
 
 type CardValue = number | string;
 
@@ -8,194 +14,192 @@ interface User {
     name: string;
 }
 
-interface Story {
-    id: string;
-    title: string;
-    description: string;
-}
-
-interface Vote {
-    userId: string;
-    userName: string;
-    value: CardValue;
-}
-
 interface PokerGameProps {
     gameId: string;
     user: User;
 }
 
 const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
-    const [currentStory, setCurrentStory] = useState<Story>({
-        id: "1",
-        title: "User Authentication System",
-        description:
-            "Implement login, logout, and user registration functionality with email verification.",
-    });
-
     const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
-    const [hasVoted, setHasVoted] = useState<boolean>(false);
     const [showResults, setShowResults] = useState<boolean>(false);
-    const [votes, setVotes] = useState<Vote[]>([]);
-    const [teamMembers] = useState<User[]>([
-        { id: user.id, name: user.name },
-        { id: "2", name: "Alice Johnson" },
-        { id: "3", name: "Bob Smith" },
-        { id: "4", name: "Carol Davis" },
-    ]);
 
-    const cardValues: CardValue[] = [0, 1, 2, 3, 5, 8, 13, 21, 34, "?", "☕"];
+    // Fetch game data
+    const { data: gameData, isLoading: gameLoading } = useGame(gameId);
+    const { data: players = [], isLoading: playersLoading } =
+        usePlayers(gameId);
+    const { data: stories = [], isLoading: storiesLoading } =
+        useStories(gameId);
+    const { data: pointValues = [], isLoading: pointValuesLoading } =
+        usePointValues();
+
+    // Find current story (first story marked as current or first story)
+    const currentStory = stories.find((s: Story) => s.is_current) || stories[0];
+    const currentStoryId = currentStory?.id.toString();
+
+    // Fetch votes for current story
+    const { data: votes = [], refetch: refetchVotes } = useVotes(
+        currentStoryId || ""
+    );
+
+    // Mutations
+    const submitVoteMutation = useSubmitVote(currentStoryId || "", gameId);
+    const revealVotesMutation = useRevealVotes(currentStoryId || "", gameId);
+
+    // Check if current user has voted
+    const userVote = votes.find(
+        (v: Vote) => v.player_id.toString() === user.id
+    );
+    const hasVoted = !!userVote;
+
+    // Loading state
+    const isLoading =
+        gameLoading || playersLoading || storiesLoading || pointValuesLoading;
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-lg">Loading game data...</div>
+            </div>
+        );
+    }
+
+    if (!currentStory) {
+        return (
+            <div className="text-center p-8">
+                <h2 className="text-xl font-semibold mb-4">
+                    No Stories Available
+                </h2>
+                <p className="text-gray-600">
+                    Ask the moderator to add some stories to estimate.
+                </p>
+            </div>
+        );
+    }
 
     const handleCardSelect = (value: CardValue): void => {
         if (hasVoted && !showResults) return;
         setSelectedCard(value);
     };
 
-    const submitVote = (): void => {
-        if (selectedCard !== null && !hasVoted) {
-            const newVote: Vote = {
-                userId: user.id,
-                userName: user.name,
-                value: selectedCard,
-            };
+    const submitVote = async (): Promise<void> => {
+        if (selectedCard !== null && !hasVoted && currentStoryId) {
+            try {
+                const pointValue = pointValues.find(
+                    (pv: PointValue) => pv.value === selectedCard.toString()
+                );
+                if (!pointValue) return;
 
-            setVotes((prev) => [
-                ...prev.filter((v) => v.userId !== user.id),
-                newVote,
-            ]);
-            setHasVoted(true);
-
-            // Simulate other team members voting
-            if (votes.length === 0) {
-                setTimeout(() => {
-                    const otherVotes: Vote[] = [
-                        { userId: "2", userName: "Alice Johnson", value: 5 },
-                        { userId: "3", userName: "Bob Smith", value: 8 },
-                        { userId: "4", userName: "Carol Davis", value: 5 },
-                    ];
-                    setVotes((prev) => [...prev, ...otherVotes]);
-                }, 1500);
+                await submitVoteMutation.mutateAsync({
+                    point_value_id: pointValue.id,
+                    player_id: parseInt(user.id),
+                });
+                refetchVotes();
+            } catch (error) {
+                console.error("Failed to submit vote:", error);
             }
         }
     };
 
-    const revealResults = (): void => {
-        setShowResults(true);
+    const revealResults = async (): Promise<void> => {
+        if (currentStoryId) {
+            try {
+                await revealVotesMutation.mutateAsync();
+                setShowResults(true);
+                refetchVotes();
+            } catch (error) {
+                console.error("Failed to reveal results:", error);
+            }
+        }
     };
 
     const startNewVoting = (): void => {
         setSelectedCard(null);
-        setHasVoted(false);
         setShowResults(false);
-        setVotes([]);
-
-        // Simulate new story
-        const stories = [
-            {
-                id: "2",
-                title: "Shopping Cart Feature",
-                description:
-                    "Add items to cart, modify quantities, and proceed to checkout.",
-            },
-            {
-                id: "3",
-                title: "Payment Integration",
-                description:
-                    "Integrate with Stripe for secure payment processing.",
-            },
-            {
-                id: "4",
-                title: "Order History",
-                description:
-                    "Allow users to view their past orders and reorder items.",
-            },
-        ];
-
-        const randomStory = stories[Math.floor(Math.random() * stories.length)];
-        setCurrentStory(randomStory);
     };
 
-    const getVoteStats = () => {
-        if (votes.length === 0) return null;
-
-        const numericVotes = votes
-            .map((v) => v.value)
-            .filter((v) => typeof v === "number") as number[];
-
-        if (numericVotes.length === 0) return null;
-
-        const avg =
-            numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length;
-        const min = Math.min(...numericVotes);
-        const max = Math.max(...numericVotes);
-
-        return { avg: avg.toFixed(1), min, max };
-    };
-
-    const allMembersVoted = votes.length === teamMembers.length;
+    const totalVotes = votes.length;
+    const totalPlayers = players.length;
+    const votingProgress =
+        totalPlayers > 0 ? Math.round((totalVotes / totalPlayers) * 100) : 0;
+    const activePointValues = pointValues.filter(
+        (pv: PointValue) => pv.is_active
+    );
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            {/* Game Info */}
-            <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">
-                    Planning Poker Session
-                </h1>
-                <p className="text-gray-600">Game ID: {gameId}</p>
-            </div>
-
-            {/* Current Story Section */}
+            {/* Game Header */}
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                    Current Story
-                </h2>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                        {currentStory.title}
-                    </h3>
-                    <p className="text-blue-700">{currentStory.description}</p>
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                        {gameData?.name || "Planning Poker Game"}
+                    </h1>
+                    <div className="text-sm text-gray-600">
+                        Game Code:{" "}
+                        <span className="font-mono font-bold">
+                            {gameData?.game_code}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Team Members & Voting Status */}
+            {/* Current Story */}
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                    Team Members ({votes.length}/{teamMembers.length} voted)
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {teamMembers.map((member) => {
-                        const memberVote = votes.find(
-                            (v) => v.userId === member.id
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                    Current Story
+                </h2>
+                <div className="border-l-4 border-blue-500 pl-4">
+                    <h3 className="text-lg font-medium text-gray-800 mb-2">
+                        {currentStory.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                        {currentStory.description}
+                    </p>
+                    {currentStory.acceptance_criteria && (
+                        <div className="text-sm text-gray-500">
+                            <strong>Acceptance Criteria:</strong>{" "}
+                            {currentStory.acceptance_criteria}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Voting Progress */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                        Voting Progress
+                    </h3>
+                    <span className="text-sm text-gray-600">
+                        {totalVotes} of {totalPlayers} votes
+                    </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                        className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${votingProgress}%` }}
+                    ></div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {players.map((player: Player) => {
+                        const playerVote = votes.find(
+                            (v: Vote) => v.player_id === player.id
                         );
+                        const hasPlayerVoted = !!playerVote;
+
                         return (
                             <div
-                                key={member.id}
-                                className={`p-3 rounded-lg text-center ${
-                                    memberVote
-                                        ? "bg-green-100 border-2 border-green-300"
-                                        : "bg-gray-100 border-2 border-gray-300"
+                                key={player.id}
+                                className={`px-3 py-1 rounded-full text-sm ${
+                                    hasPlayerVoted
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-600"
                                 }`}
                             >
-                                <div className="font-semibold text-gray-800">
-                                    {member.name}
-                                </div>
-                                <div className="text-sm mt-1">
-                                    {memberVote ? (
-                                        showResults ? (
-                                            <span className="font-bold text-green-600">
-                                                {memberVote.value}
-                                            </span>
-                                        ) : (
-                                            <span className="text-green-600">
-                                                ✓ Voted
-                                            </span>
-                                        )
-                                    ) : (
-                                        <span className="text-gray-500">
-                                            Waiting...
-                                        </span>
-                                    )}
-                                </div>
+                                {player.name}
+                                {hasPlayerVoted && (
+                                    <span className="ml-1">✓</span>
+                                )}
                             </div>
                         );
                     })}
@@ -203,113 +207,118 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
             </div>
 
             {/* Voting Cards */}
-            {!showResults && (
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Select Your Estimate
+                </h3>
+                <div className="grid grid-cols-6 md:grid-cols-11 gap-3">
+                    {activePointValues.map((pointValue: PointValue) => (
+                        <Card
+                            key={pointValue.id}
+                            value={pointValue.value}
+                            isSelected={selectedCard === pointValue.value}
+                            onClick={() => handleCardSelect(pointValue.value)}
+                            disabled={hasVoted && !showResults}
+                            className={pointValue.color_class as string}
+                        />
+                    ))}
+                </div>
+
+                <div className="mt-6 text-center">
+                    {!hasVoted && selectedCard !== null && (
+                        <button
+                            onClick={submitVote}
+                            disabled={submitVoteMutation.isPending}
+                            className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                        >
+                            {submitVoteMutation.isPending
+                                ? "Submitting..."
+                                : "Submit Vote"}
+                        </button>
+                    )}
+
+                    {hasVoted && !showResults && (
+                        <div className="text-center">
+                            <p className="text-green-600 font-semibold mb-4">
+                                ✓ You voted: {userVote?.point_value?.value}
+                            </p>
+                            <p className="text-gray-600">
+                                Waiting for other team members...
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Moderator Controls */}
+            {totalVotes > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-                        {hasVoted
-                            ? "Waiting for other team members..."
-                            : "Choose your estimate"}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        Moderator Controls
                     </h3>
-
-                    <div className="grid grid-cols-5 md:grid-cols-11 gap-3 justify-items-center mb-6">
-                        {cardValues.map((value) => (
-                            <Card
-                                key={value}
-                                value={value}
-                                isSelected={selectedCard === value}
-                                onClick={() => handleCardSelect(value)}
-                            />
-                        ))}
-                    </div>
-
-                    <div className="text-center">
-                        {selectedCard !== null && !hasVoted && (
-                            <button
-                                onClick={submitVote}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors mr-4"
-                            >
-                                Submit Vote: {selectedCard}
-                            </button>
-                        )}
-
-                        {allMembersVoted && (
+                    <div className="flex gap-4 justify-center">
+                        {!showResults && (
                             <button
                                 onClick={revealResults}
-                                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors animate-pulse"
+                                disabled={revealVotesMutation.isPending}
+                                className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
                             >
-                                Reveal Results
+                                {revealVotesMutation.isPending
+                                    ? "Revealing..."
+                                    : "Reveal Votes"}
+                            </button>
+                        )}
+                        {showResults && (
+                            <button
+                                onClick={startNewVoting}
+                                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                            >
+                                Start New Voting
                             </button>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Results Section */}
+            {/* Results */}
             {showResults && (
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
                         Voting Results
                     </h3>
-
-                    <div className="mb-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            {votes.map((vote) => (
+                    <div className="space-y-3">
+                        {votes.map((vote: Vote, index: number) => {
+                            const player = players.find(
+                                (p: Player) => p.id === vote.player_id
+                            );
+                            return (
                                 <div
-                                    key={vote.userId}
-                                    className="bg-gray-50 p-3 rounded-lg text-center"
+                                    key={index}
+                                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
                                 >
-                                    <div className="font-semibold text-gray-800">
-                                        {vote.userName}
-                                    </div>
-                                    <div className="text-2xl font-bold text-blue-600 mt-1">
-                                        {vote.value}
-                                    </div>
+                                    <span className="font-medium text-gray-800">
+                                        {player?.name || "Unknown Player"}
+                                    </span>
+                                    <span className="text-lg font-bold text-blue-600">
+                                        {vote.point_value?.value || "Unknown"}
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
-
-                        {getVoteStats() && (
-                            <div className="bg-blue-50 p-4 rounded-lg">
-                                <h4 className="font-semibold text-blue-800 mb-2">
-                                    Statistics
-                                </h4>
-                                <div className="grid grid-cols-3 gap-4 text-center">
-                                    <div>
-                                        <div className="text-sm text-blue-600">
-                                            Average
-                                        </div>
-                                        <div className="text-lg font-bold text-blue-800">
-                                            {getVoteStats()?.avg}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-sm text-blue-600">
-                                            Min
-                                        </div>
-                                        <div className="text-lg font-bold text-blue-800">
-                                            {getVoteStats()?.min}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-sm text-blue-600">
-                                            Max
-                                        </div>
-                                        <div className="text-lg font-bold text-blue-800">
-                                            {getVoteStats()?.max}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                            );
+                        })}
                     </div>
 
-                    <div className="text-center">
-                        <button
-                            onClick={startNewVoting}
-                            className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                        >
-                            Start New Story
-                        </button>
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-semibold text-blue-800 mb-2">
+                            Statistics
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="text-center">
+                                <div className="text-lg font-bold text-blue-600">
+                                    {totalVotes}
+                                </div>
+                                <div className="text-blue-700">Total Votes</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -3,10 +3,10 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('app');
+    return view('welcome');
 });
 
-// Catch-all route for React Router (SPA)
+// Catch-all route for React Router (SPA) - exclude API routes
 Route::get('/{path?}', function () {
-    return view('app');
-})->where('path', '.*');
+    return view('welcome');
+})->where('path', '^(?!api).*$');

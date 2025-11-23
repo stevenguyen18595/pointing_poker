@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "../lib/axios";
+import { apiClient, unwrapApiResponse } from "../lib/axios";
 import { queryKeys } from "./keys";
 import type {
     Game,
@@ -18,7 +18,7 @@ export function useGameStatuses() {
             const response = await apiClient.get<ApiResponse<GameStatus[]>>(
                 "/game-statuses"
             );
-            return response.data.data;
+            return unwrapApiResponse(response);
         },
         staleTime: 1000 * 60 * 15, // 15 minutes - statuses don't change often
     });

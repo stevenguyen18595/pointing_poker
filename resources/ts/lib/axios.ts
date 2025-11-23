@@ -1,21 +1,28 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 
+// API Configuration - use environment variable or default to /api
+const API_BASE_URL = (window as any)?.ENV?.VITE_API_URL || "/api";
+
 // Create axios instance with base configuration
 export const apiClient = axios.create({
-    baseURL: "/api",
+    baseURL: API_BASE_URL,
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",
     },
     withCredentials: true, // Include cookies for session-based auth
+    timeout: 10000, // 10 second timeout
 });
 
-// Request interceptor to add CSRF token
+// Request interceptor to add CSRF token and auth
 apiClient.interceptors.request.use(
     (config) => {
         // Add CSRF token for non-GET requests
-        if (config.method && config.method !== "get") {
+        if (
+            config.method &&
+            !["get", "head", "options"].includes(config.method.toLowerCase())
+        ) {
             const token = document
                 .querySelector('meta[name="csrf-token"]')
                 ?.getAttribute("content");
@@ -23,6 +30,13 @@ apiClient.interceptors.request.use(
                 config.headers["X-CSRF-TOKEN"] = token;
             }
         }
+
+        // Add any auth tokens if needed
+        const authToken = localStorage.getItem("auth_token");
+        if (authToken) {
+            config.headers.Authorization = `Bearer ${authToken}`;
+        }
+
         return config;
     },
     (error) => {
@@ -100,5 +114,59 @@ apiClient.interceptors.response.use(
         }
     }
 );
+
+// Helper function to extract error messages from API responses
+export function getErrorMessage(error: AxiosError): string {
+    if (error.response?.data) {
+        const data = error.response.data as any;
+
+        // Handle Laravel API responses with message field
+        if (data.message) {
+            return data.message;
+        }
+
+        // Handle Laravel validation errors
+        if (data.errors) {
+            const errors = Object.values(data.errors).flat() as string[];
+            return errors.length > 0 ? errors.join(", ") : "Validation failed";
+        }
+
+        // Handle simple error strings
+        if (typeof data === "string") {
+            return data;
+        }
+    }
+
+    // Fallback to axios error message
+    return error.message || "An unexpected error occurred";
+}
+
+// Helper function to unwrap Laravel API responses
+export function unwrapApiResponse<T>(response: AxiosResponse): T {
+    // Laravel API responses typically have data nested under 'data' key
+    if (
+        response.data &&
+        typeof response.data === "object" &&
+        "data" in response.data
+    ) {
+        return response.data.data;
+    }
+    // Fallback to direct response data
+    return response.data;
+}
+
+// API health check function for connection testing
+export async function checkApiHealth(): Promise<boolean> {
+    try {
+        await apiClient.get("/game-statuses");
+        return true;
+    } catch (error) {
+        console.warn(
+            "API health check failed:",
+            getErrorMessage(error as AxiosError)
+        );
+        return false;
+    }
+}
 
 export default apiClient;

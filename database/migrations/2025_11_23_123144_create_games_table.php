@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('name');
             $table->string('game_code')->unique(); // Unique game code for joining
             $table->unsignedBigInteger('status_id'); // Will add foreign key later
-            $table->foreignId('created_by')->constrained('users');
             $table->json('settings')->nullable(); // Store game settings like card values, timer etc.
             $table->timestamps();
         });
