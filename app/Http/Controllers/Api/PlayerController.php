@@ -14,7 +14,6 @@ class PlayerController extends Controller
     public function index(Request $request, Game $game): JsonResponse
     {
         $players = $game->players()
-            ->with(['user'])
             ->withCount(['votes'])
             ->latest('last_seen_at')
             ->get();
@@ -31,7 +30,6 @@ class PlayerController extends Controller
             abort(404, 'Player not found in this game.');
         }
 
-        $player->load(['user']);
         $player->loadCount(['votes']);
 
         return response()->json([
@@ -67,7 +65,6 @@ class PlayerController extends Controller
         }
 
         $player->update($validated);
-        $player->load(['user']);
 
         return response()->json([
             'data' => new PlayerResource($player),

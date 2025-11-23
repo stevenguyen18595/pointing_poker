@@ -5,6 +5,7 @@ import { queryClient } from "../lib/queryClient";
 import PokerGame from "./PokerGame";
 import JoinGameForm from "./JoinGameForm";
 import { useCreateGame, useJoinGame } from "../queries/games";
+import ApiTestComponent from "./ApiTestComponent";
 
 type ViewType = "home" | "join" | "game" | "create";
 
@@ -157,6 +158,7 @@ const App: React.FC = () => {
     return (
         <QueryClientProvider client={queryClient}>
             <AppContent />
+            {/* <ApiTestComponent /> */}
             <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
     );
