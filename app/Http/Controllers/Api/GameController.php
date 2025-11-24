@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateGameRequest;
+use App\Http\Requests\JoinGameRequest;
+use App\Http\Requests\UpdateGameRequest;
+use App\Http\Requests\UpdateGameStatusRequest;
 use App\Http\Resources\GameResource;
 use App\Http\Resources\PlayerResource;
 use App\Models\Game;
@@ -16,7 +20,7 @@ class GameController extends Controller
     public function index(): JsonResponse
     {
         $games = Game::with(['status'])
-            ->withCount(['players', 'stories'])
+            ->withCount(['players', 'votes'])
             ->latest()
             ->get();
 
@@ -25,24 +29,31 @@ class GameController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(CreateGameRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'settings' => 'nullable|array',
-        ]);
+        // Now we have strongly-typed access to request data
+        // Similar to .NET DTOs with IntelliSense support
+        $game = Game::create($request->getGameData());
 
-        $game = Game::create([
-            'name' => $validated['name'],
-            'status_id' => 1, // Default to 'waiting' status
-            'settings' => $validated['settings'] ?? [],
-        ]);
+        // Create the creator as a player if name provided
+        $player = null;
+        if ($request->getCreatorName()) {
+            $player = Player::create([
+                'game_id' => $game->id,
+                'name' => $request->getCreatorName(),
+                'is_moderator' => true, // Creator is always moderator
+                'session_id' => session()->getId(),
+                'last_seen_at' => now(),
+            ]);
+        }
 
         $game->load(['status']);
 
         return response()->json([
-            'data' => new GameResource($game),
+            'data' => [
+                'game' => new GameResource($game),
+                'player' => $player ? new PlayerResource($player) : null,
+            ],
             'message' => 'Game created successfully.',
         ], 201);
     }
@@ -52,26 +63,27 @@ class GameController extends Controller
         $game->load([
             'status',
             'players',
-            'stories.votes.pointValue',
-            'currentStory'
+            'votes.pointValue',
         ]);
         
-        $game->loadCount(['players', 'stories']);
+        $game->loadCount(['players', 'votes']);
 
         return response()->json([
             'data' => new GameResource($game),
         ]);
     }
 
-    public function update(Request $request, Game $game): JsonResponse
+    public function update(UpdateGameRequest $request, Game $game): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'settings' => 'sometimes|array',
-            'status_id' => 'sometimes|exists:game_statuses,id',
-        ]);
+        // Strongly-typed request with validation
+        if (!$request->hasUpdates()) {
+            return response()->json([
+                'data' => new GameResource($game),
+                'message' => 'No changes provided.',
+            ]);
+        }
 
-        $game->update($validated);
+        $game->update($request->getUpdateData());
         $game->load(['status']);
 
         return response()->json([
@@ -89,14 +101,10 @@ class GameController extends Controller
         ]);
     }
 
-    public function join(Request $request): JsonResponse
+    public function join(JoinGameRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'game_code' => 'required|string',
-            'player_name' => 'required|string|max:255',
-        ]);
-
-        $game = Game::where('game_code', $validated['game_code'])->first();
+        // Strongly-typed request with automatic validation
+        $game = Game::where('game_code', $request->getGameCode())->first();
 
         if (!$game) {
             throw ValidationException::withMessages([
@@ -105,7 +113,7 @@ class GameController extends Controller
         }
 
         // Check if player name already exists in the game
-        $existingPlayer = $game->players()->where('name', $validated['player_name'])->first();
+        $existingPlayer = $game->players()->where('name', $request->getPlayerName())->first();
         
         if ($existingPlayer) {
             throw ValidationException::withMessages([
@@ -113,12 +121,7 @@ class GameController extends Controller
             ]);
         }
 
-        $player = Player::create([
-            'game_id' => $game->id,
-            'name' => $validated['player_name'],
-            'session_id' => session()->getId(),
-            'last_seen_at' => now(),
-        ]);
+        $player = Player::create($request->getPlayerData($game->id));
 
         $game->load(['status']);
 
@@ -131,13 +134,10 @@ class GameController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, Game $game): JsonResponse
+    public function updateStatus(UpdateGameStatusRequest $request, Game $game): JsonResponse
     {
-        $validated = $request->validate([
-            'status_id' => 'required|exists:game_statuses,id',
-        ]);
-
-        $game->update(['status_id' => $validated['status_id']]);
+        // Strongly-typed request with validation
+        $game->update($request->getStatusUpdateData());
         $game->load(['status']);
 
         return response()->json([

@@ -53,19 +53,23 @@ export function useCreateGame() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: CreateGameRequest): Promise<Game> => {
-            const response = await apiClient.post<ApiResponse<Game>>(
-                "/games",
-                data
-            );
+        mutationFn: async (
+            data: CreateGameRequest
+        ): Promise<{ game: Game; player: Player | null }> => {
+            const response = await apiClient.post<
+                ApiResponse<{ game: Game; player: Player | null }>
+            >("/games", data);
             return response.data.data;
         },
-        onSuccess: (newGame) => {
+        onSuccess: (result) => {
             // Update the games list cache
             queryClient.invalidateQueries({ queryKey: queryKeys.games });
 
             // Add the new game to cache
-            queryClient.setQueryData(queryKeys.game(newGame.id), newGame);
+            queryClient.setQueryData(
+                queryKeys.game(result.game.id),
+                result.game
+            );
         },
     });
 }

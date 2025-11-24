@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PlayerResource;
+use App\Http\Requests\UpdatePlayerRequest;
 use App\Models\Game;
 use App\Models\Player;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class PlayerController extends Controller
 {
-    public function index(Request $request, Game $game): JsonResponse
+    public function index(Game $game): JsonResponse
     {
         $players = $game->players()
             ->withCount(['votes'])
@@ -37,22 +37,24 @@ class PlayerController extends Controller
         ]);
     }
 
-    public function update(Request $request, Game $game, Player $player): JsonResponse
+    public function update(UpdatePlayerRequest $request, Game $game, Player $player): JsonResponse
     {
         // Ensure the player belongs to the game
         if ($player->game_id !== $game->id) {
             abort(404, 'Player not found in this game.');
         }
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'is_moderator' => 'sometimes|boolean',
-        ]);
+        if (!$request->hasUpdates()) {
+            return response()->json([
+                'data' => new PlayerResource($player),
+                'message' => 'No updates provided.',
+            ]);
+        }
 
         // Check if name is unique in the game (if updating name)
-        if (isset($validated['name']) && $validated['name'] !== $player->name) {
+        if ($request->getName() && $request->getName() !== $player->name) {
             $existingPlayer = $game->players()
-                ->where('name', $validated['name'])
+                ->where('name', $request->getName())
                 ->where('id', '!=', $player->id)
                 ->first();
 
@@ -64,7 +66,7 @@ class PlayerController extends Controller
             }
         }
 
-        $player->update($validated);
+        $player->update($request->getUpdateData());
 
         return response()->json([
             'data' => new PlayerResource($player),
@@ -86,7 +88,7 @@ class PlayerController extends Controller
         ]);
     }
 
-    public function updateActivity(Request $request, Game $game, Player $player): JsonResponse
+    public function updateActivity(Game $game, Player $player): JsonResponse
     {
         // Ensure the player belongs to the game
         if ($player->game_id !== $game->id) {

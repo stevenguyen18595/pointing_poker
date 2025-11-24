@@ -5,10 +5,15 @@ RUN apt-get update && apt-get install -y \
     #It installs packages required by Laravel, PHP extensions, Composer, GD, etc.
     git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Copy Xdebug configuration
+COPY ./docker/php/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 WORKDIR /var/www
 

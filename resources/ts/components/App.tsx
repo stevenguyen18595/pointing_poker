@@ -12,6 +12,7 @@ type ViewType = "home" | "join" | "game" | "create";
 interface User {
     id: string;
     name: string;
+    is_moderator: boolean;
 }
 
 interface Game {
@@ -28,27 +29,33 @@ const AppContent: React.FC = () => {
     const createGameMutation = useCreateGame();
     const joinGameMutation = useJoinGame();
 
+    //the person who creates the game is not one of the players.
     const handleCreateGame = async (): Promise<void> => {
         const userName = prompt("Enter your name:");
         const gameName = prompt("Enter game name:");
         if (!userName || !gameName) return;
 
         try {
-            const response = await createGameMutation.mutateAsync({
+            const { game, player } = await createGameMutation.mutateAsync({
                 name: gameName,
                 description: `Planning poker session for ${gameName}`,
+                creator_name: userName,
             });
 
-            const newUser: User = {
-                id: Math.random().toString(36).substr(2, 9),
-                name: userName,
-            };
+            // Use the player returned from backend
+            if (player) {
+                const newUser: User = {
+                    id: player.id.toString(),
+                    name: player.name,
+                    is_moderator: player.is_moderator,
+                };
+                setUser(newUser);
+            }
 
-            setUser(newUser);
             setGameData({
-                id: response.id.toString(),
-                gameCode: response.game_code,
-                name: response.name,
+                id: game.id.toString(),
+                gameCode: game.game_code,
+                name: game.name,
             });
             setCurrentView("game");
         } catch (error) {
@@ -62,17 +69,20 @@ const AppContent: React.FC = () => {
 
     const handleJoinGame = async (
         gameCode: string,
-        userName: string
+        userName: string,
+        isModerator: boolean
     ): Promise<void> => {
         try {
             const response = await joinGameMutation.mutateAsync({
                 game_code: gameCode,
                 player_name: userName,
+                is_moderator: isModerator,
             });
 
             const newUser: User = {
                 id: response.player.id.toString(),
                 name: response.player.name,
+                is_moderator: response.player.is_moderator,
             };
 
             setUser(newUser);

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Vote extends Model
 {
     protected $fillable = [
-        'story_id',
+        'game_id',
         'player_id',
         'point_value_id',
         'voted_at',
@@ -29,9 +29,9 @@ class Vote extends Model
         });
     }
 
-    public function story(): BelongsTo
+    public function game(): BelongsTo
     {
-        return $this->belongsTo(Story::class);
+        return $this->belongsTo(Game::class);
     }
 
     public function player(): BelongsTo
@@ -44,9 +44,9 @@ class Vote extends Model
         return $this->belongsTo(PointValue::class);
     }
 
-    public function scopeForStory($query, $storyId)
+    public function scopeForGame($query, $gameId)
     {
-        return $query->where('story_id', $storyId);
+        return $query->where('game_id', $gameId);
     }
 
     public function scopeForPlayer($query, $playerId)

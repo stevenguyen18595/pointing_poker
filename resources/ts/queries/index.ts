@@ -20,17 +20,6 @@ export {
     useRemovePlayer,
 } from "./players";
 
-// Export story-related queries
-export {
-    useStories,
-    useStory,
-    useCreateStory,
-    useUpdateStory,
-    useDeleteStory,
-    useSetCurrentStory,
-    useCompleteStory,
-} from "./stories";
-
 // Export vote-related queries
 export {
     useVotes,
@@ -39,7 +28,6 @@ export {
     useUpdateVote,
     useDeleteVote,
     useRevealVotes,
-    useStartVoting,
     useResetVotes,
 } from "./votes";
 

@@ -4,28 +4,28 @@ import { queryKeys } from "./keys";
 import type { Vote, SubmitVoteRequest, ApiResponse } from "../types/api";
 
 // Vote Queries
-export function useVotes(storyId: string) {
+export function useVotes(gameId: string) {
     return useQuery({
-        queryKey: queryKeys.votes(storyId),
+        queryKey: queryKeys.votes(gameId),
         queryFn: async (): Promise<Vote[]> => {
             const response = await apiClient.get<ApiResponse<Vote[]>>(
-                `/stories/${storyId}/votes`
+                `/games/${gameId}/votes`
             );
             return response.data.data;
         },
-        enabled: !!storyId,
+        enabled: !!gameId,
         refetchInterval: 2000, // Poll every 2 seconds during voting
         refetchIntervalInBackground: true,
     });
 }
 
-export function useVote(storyId: string, playerId: string) {
+export function useVote(gameId: string, playerId: string) {
     return useQuery({
-        queryKey: queryKeys.vote(storyId, playerId),
+        queryKey: queryKeys.vote(gameId, playerId),
         queryFn: async (): Promise<Vote | null> => {
             try {
                 const response = await apiClient.get<ApiResponse<Vote>>(
-                    `/stories/${storyId}/votes/${playerId}`
+                    `/games/${gameId}/votes/${playerId}`
                 );
                 return response.data.data;
             } catch (error: any) {
@@ -36,18 +36,18 @@ export function useVote(storyId: string, playerId: string) {
                 throw error;
             }
         },
-        enabled: !!storyId && !!playerId,
+        enabled: !!gameId && !!playerId,
     });
 }
 
 // Vote Mutations
-export function useSubmitVote(storyId: string, gameId: string) {
+export function useSubmitVote(gameId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (data: SubmitVoteRequest): Promise<Vote> => {
             const response = await apiClient.post<ApiResponse<Vote>>(
-                `/stories/${storyId}/votes`,
+                `/games/${gameId}/votes`,
                 data
             );
             return response.data.data;
@@ -55,24 +55,24 @@ export function useSubmitVote(storyId: string, gameId: string) {
         onSuccess: (newVote) => {
             // Update vote cache
             queryClient.setQueryData(
-                queryKeys.vote(storyId, newVote.player_id.toString()),
+                queryKeys.vote(gameId, newVote.player_id.toString()),
                 newVote
             );
 
             // Invalidate votes list
             queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
+                queryKey: queryKeys.votes(gameId),
             });
 
-            // Invalidate stories list to potentially update voting status
+            // Invalidate game to update status
             queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
+                queryKey: queryKeys.game(gameId),
             });
         },
     });
 }
 
-export function useUpdateVote(storyId: string, gameId: string) {
+export function useUpdateVote(gameId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -92,24 +92,24 @@ export function useUpdateVote(storyId: string, gameId: string) {
         onSuccess: (updatedVote) => {
             // Update vote cache
             queryClient.setQueryData(
-                queryKeys.vote(storyId, updatedVote.player_id.toString()),
+                queryKeys.vote(gameId, updatedVote.player_id.toString()),
                 updatedVote
             );
 
             // Invalidate votes list
             queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
+                queryKey: queryKeys.votes(gameId),
             });
 
-            // Invalidate stories list
+            // Invalidate game
             queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
+                queryKey: queryKeys.game(gameId),
             });
         },
     });
 }
 
-export function useDeleteVote(storyId: string, gameId: string) {
+export function useDeleteVote(gameId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -118,83 +118,62 @@ export function useDeleteVote(storyId: string, gameId: string) {
         }: {
             playerId: string;
         }): Promise<void> => {
-            await apiClient.delete(`/stories/${storyId}/votes/${playerId}`);
+            await apiClient.delete(`/games/${gameId}/votes/${playerId}`);
         },
         onSuccess: () => {
             // Invalidate votes list
             queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
+                queryKey: queryKeys.votes(gameId),
             });
 
-            // Invalidate stories list
+            // Invalidate game
             queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
+                queryKey: queryKeys.game(gameId),
             });
         },
     });
 }
 
-export function useRevealVotes(storyId: string, gameId: string) {
+export function useRevealVotes(gameId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (): Promise<{ votes: Vote[]; revealed: boolean }> => {
             const response = await apiClient.post<
                 ApiResponse<{ votes: Vote[]; revealed: boolean }>
-            >(`/stories/${storyId}/reveal`);
+            >(`/games/${gameId}/reveal`);
             return response.data.data;
         },
         onSuccess: () => {
             // Invalidate votes to show revealed state
             queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
+                queryKey: queryKeys.votes(gameId),
             });
 
-            // Invalidate stories to update voting status
+            // Invalidate game to update status
             queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
+                queryKey: queryKeys.game(gameId),
             });
         },
     });
 }
 
-export function useStartVoting(storyId: string, gameId: string) {
+export function useResetVotes(gameId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (): Promise<void> => {
-            await apiClient.post(`/stories/${storyId}/start-voting`);
-        },
-        onSuccess: () => {
-            // Clear existing votes
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
-            });
-
-            // Update story status
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
-            });
-        },
-    });
-}
-
-export function useResetVotes(storyId: string, gameId: string) {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async (): Promise<void> => {
-            await apiClient.delete(`/stories/${storyId}/votes`);
+            await apiClient.delete(`/games/${gameId}/votes`);
         },
         onSuccess: () => {
             // Clear votes cache
             queryClient.invalidateQueries({
-                queryKey: queryKeys.votes(storyId),
+                queryKey: queryKeys.votes(gameId),
             });
 
-            // Update story status
+            // Update game
             queryClient.invalidateQueries({
-                queryKey: queryKeys.stories(gameId),
+                queryKey: queryKeys.game(gameId),
             });
         },
     });

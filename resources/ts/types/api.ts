@@ -12,7 +12,6 @@ export interface Game {
     updated_at: string;
     status?: GameStatus;
     players?: Player[];
-    stories?: Story[];
 }
 
 export interface GameStatus {
@@ -39,24 +38,9 @@ export interface Player {
     updated_at: string;
 }
 
-export interface Story {
-    id: number;
-    game_id: number;
-    title: string;
-    description: string | null;
-    acceptance_criteria: string | null;
-    estimated_points: string | null;
-    sort_order: number;
-    is_current: boolean;
-    is_completed: boolean;
-    created_at: string;
-    updated_at: string;
-    votes?: Vote[];
-}
-
 export interface Vote {
     id: number;
-    story_id: number;
+    game_id: number;
     player_id: number;
     point_value_id: number;
     voted_at: string;
@@ -84,20 +68,17 @@ export interface CreateGameRequest {
     name: string;
     description?: string;
     settings?: Record<string, any>;
+    creator_name?: string;
 }
 
 export interface JoinGameRequest {
     game_code: string;
     player_name: string;
-}
-
-export interface CreateStoryRequest {
-    title: string;
-    description?: string;
-    acceptance_criteria?: string;
+    is_moderator?: boolean;
 }
 
 export interface SubmitVoteRequest {
+    game_id: number;
     point_value_id: number;
     player_id: number;
 }

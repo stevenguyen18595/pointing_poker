@@ -46,14 +46,9 @@ class Game extends Model
         return $this->hasMany(Player::class);
     }
 
-    public function stories(): HasMany
+    public function votes(): HasMany
     {
-        return $this->hasMany(Story::class);
-    }
-
-    public function currentStory(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Story::class)->where('is_current', true);
+        return $this->hasMany(Vote::class);
     }
 
     public function isActive(): Attribute

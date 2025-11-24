@@ -29,12 +29,11 @@ class GameResource extends JsonResource
                 'name' => $this->creator->name,
             ]),
             'players' => PlayerResource::collection($this->whenLoaded('players')),
-            'stories' => StoryResource::collection($this->whenLoaded('stories')),
-            'current_story' => new StoryResource($this->whenLoaded('currentStory')),
+            'votes' => VoteResource::collection($this->whenLoaded('votes')),
             
             // Computed attributes
             'players_count' => $this->whenCounted('players'),
-            'stories_count' => $this->whenCounted('stories'),
+            'votes_count' => $this->whenCounted('votes'),
         ];
     }
 }

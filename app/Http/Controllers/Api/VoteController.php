@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\VoteResource;
-use App\Models\Story;
+use App\Http\Requests\CreateVoteRequest;
+use App\Http\Requests\UpdateVoteRequest;
+use App\Models\Game;
 use App\Models\Vote;
 use App\Models\Player;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class VoteController extends Controller
 {
-    public function index(Story $story): JsonResponse
+    public function index(Game $game): JsonResponse
     {
-        $votes = $story->votes()
+        $votes = $game->votes()
             ->with(['player', 'pointValue'])
             ->recent()
             ->get();
@@ -24,35 +25,27 @@ class VoteController extends Controller
         ]);
     }
 
-    public function store(Request $request, Story $story): JsonResponse
+    public function store(CreateVoteRequest $request, Game $game): JsonResponse
     {
-        $validated = $request->validate([
-            'point_value_id' => 'required|exists:point_values,id',
-            'player_id' => 'sometimes|exists:players,id',
-        ]);
-
-        // If no player_id provided, we need to implement session-based player identification
-        // For now, let's assume it's provided or use a default
-        $playerId = $validated['player_id'] ?? 1; // TODO: Implement proper player identification
-
-        // Check if player already voted for this story
-        $existingVote = Vote::where('story_id', $story->id)
-            ->where('player_id', $playerId)
+        // Check if player already voted for this game
+        $existingVote = Vote::where('game_id', $game->id)
+            ->where('player_id', $request->getPlayerId())
             ->first();
 
         if ($existingVote) {
             // Update existing vote
             $existingVote->update([
-                'point_value_id' => $validated['point_value_id'],
+                'point_value_id' => $request->getPointValueId(),
                 'voted_at' => now(),
             ]);
             $vote = $existingVote;
         } else {
             // Create new vote
             $vote = Vote::create([
-                'story_id' => $story->id,
-                'player_id' => $playerId,
-                'point_value_id' => $validated['point_value_id'],
+                'game_id' => $game->id,
+                'player_id' => $request->getPlayerId(),
+                'point_value_id' => $request->getPointValueId(),
+                'voted_at' => now(),
             ]);
         }
 
@@ -64,9 +57,9 @@ class VoteController extends Controller
         ], $existingVote ? 200 : 201);
     }
 
-    public function show(Story $story, Player $player): JsonResponse
+    public function show(Game $game, Player $player): JsonResponse
     {
-        $vote = Vote::where('story_id', $story->id)
+        $vote = Vote::where('game_id', $game->id)
             ->where('player_id', $player->id)
             ->with(['player', 'pointValue'])
             ->first();
@@ -83,17 +76,9 @@ class VoteController extends Controller
         ]);
     }
 
-    public function update(Request $request, Vote $vote): JsonResponse
+    public function update(UpdateVoteRequest $request, Vote $vote): JsonResponse
     {
-        $validated = $request->validate([
-            'point_value_id' => 'required|exists:point_values,id',
-        ]);
-
-        $vote->update([
-            'point_value_id' => $validated['point_value_id'],
-            'voted_at' => now(),
-        ]);
-
+        $vote->update($request->getVoteUpdateData());
         $vote->load(['player', 'pointValue']);
 
         return response()->json([
@@ -102,9 +87,9 @@ class VoteController extends Controller
         ]);
     }
 
-    public function destroy(Story $story, Player $player): JsonResponse
+    public function destroy(Game $game, Player $player): JsonResponse
     {
-        $vote = Vote::where('story_id', $story->id)
+        $vote = Vote::where('game_id', $game->id)
             ->where('player_id', $player->id)
             ->first();
 
@@ -121,13 +106,11 @@ class VoteController extends Controller
         ]);
     }
 
-    public function reveal(Story $story): JsonResponse
+    public function reveal(Game $game): JsonResponse
     {
-        $votes = $story->votes()
+        $votes = $game->votes()
             ->with(['player', 'pointValue'])
             ->get();
-
-        // TODO: Implement vote revelation logic (e.g., update story status, calculate statistics)
 
         return response()->json([
             'data' => [
@@ -139,9 +122,9 @@ class VoteController extends Controller
         ]);
     }
 
-    public function reset(Story $story): JsonResponse
+    public function reset(Game $game): JsonResponse
     {
-        $story->votes()->delete();
+        $game->votes()->delete();
 
         return response()->json([
             'message' => 'Votes reset successfully.',
@@ -167,7 +150,7 @@ class VoteController extends Controller
         });
 
         $distribution = $votes->groupBy('pointValue.label')
-            ->map(function ($group) {
+            ->map(function ($group) use ($votes) {
                 return [
                     'count' => $group->count(),
                     'percentage' => round(($group->count() / $votes->count()) * 100, 1),

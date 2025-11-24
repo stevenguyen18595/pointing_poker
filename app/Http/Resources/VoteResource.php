@@ -11,7 +11,7 @@ class VoteResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'story_id' => $this->story_id,
+            'game_id' => $this->game_id,
             'player_id' => $this->player_id,
             'point_value_id' => $this->point_value_id,
             'voted_at' => $this->voted_at->toISOString(),
@@ -21,7 +21,7 @@ class VoteResource extends JsonResource
             // Relationships
             'player' => new PlayerResource($this->whenLoaded('player')),
             'point_value' => new PointValueResource($this->whenLoaded('pointValue')),
-            'story' => new StoryResource($this->whenLoaded('story')),
+            'game' => new GameResource($this->whenLoaded('game')),
         ];
     }
 }

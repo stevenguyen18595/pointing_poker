@@ -2,16 +2,16 @@ import React, { useState } from "react";
 import Card from "./Card";
 import { useGame } from "../queries/games";
 import { usePlayers } from "../queries/players";
-import { useStories } from "../queries/stories";
 import { usePointValues } from "../queries/pointValues";
 import { useVotes, useSubmitVote, useRevealVotes } from "../queries/votes";
-import type { Story, Player, PointValue, Vote } from "../types/api";
+import type { Player, PointValue, Vote } from "../types/api";
 
 type CardValue = number | string;
 
 interface User {
     id: string;
     name: string;
+    is_moderator: boolean;
 }
 
 interface PokerGameProps {
@@ -27,23 +27,15 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const { data: gameData, isLoading: gameLoading } = useGame(gameId);
     const { data: players = [], isLoading: playersLoading } =
         usePlayers(gameId);
-    const { data: stories = [], isLoading: storiesLoading } =
-        useStories(gameId);
     const { data: pointValues = [], isLoading: pointValuesLoading } =
         usePointValues();
 
-    // Find current story (first story marked as current or first story)
-    const currentStory = stories.find((s: Story) => s.is_current) || stories[0];
-    const currentStoryId = currentStory?.id.toString();
-
-    // Fetch votes for current story
-    const { data: votes = [], refetch: refetchVotes } = useVotes(
-        currentStoryId || ""
-    );
+    // Fetch votes for current game
+    const { data: votes = [], refetch: refetchVotes } = useVotes(gameId);
 
     // Mutations
-    const submitVoteMutation = useSubmitVote(currentStoryId || "", gameId);
-    const revealVotesMutation = useRevealVotes(currentStoryId || "", gameId);
+    const submitVoteMutation = useSubmitVote(gameId);
+    const revealVotesMutation = useRevealVotes(gameId);
 
     // Check if current user has voted
     const userVote = votes.find(
@@ -52,26 +44,12 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const hasVoted = !!userVote;
 
     // Loading state
-    const isLoading =
-        gameLoading || playersLoading || storiesLoading || pointValuesLoading;
+    const isLoading = gameLoading || playersLoading || pointValuesLoading;
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-lg">Loading game data...</div>
-            </div>
-        );
-    }
-
-    if (!currentStory) {
-        return (
-            <div className="text-center p-8">
-                <h2 className="text-xl font-semibold mb-4">
-                    No Stories Available
-                </h2>
-                <p className="text-gray-600">
-                    Ask the moderator to add some stories to estimate.
-                </p>
             </div>
         );
     }
@@ -82,7 +60,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     };
 
     const submitVote = async (): Promise<void> => {
-        if (selectedCard !== null && !hasVoted && currentStoryId) {
+        if (selectedCard !== null && !hasVoted) {
             try {
                 const pointValue = pointValues.find(
                     (pv: PointValue) => pv.value === selectedCard.toString()
@@ -90,6 +68,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                 if (!pointValue) return;
 
                 await submitVoteMutation.mutateAsync({
+                    game_id: parseInt(gameId),
                     point_value_id: pointValue.id,
                     player_id: parseInt(user.id),
                 });
@@ -101,14 +80,12 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     };
 
     const revealResults = async (): Promise<void> => {
-        if (currentStoryId) {
-            try {
-                await revealVotesMutation.mutateAsync();
-                setShowResults(true);
-                refetchVotes();
-            } catch (error) {
-                console.error("Failed to reveal results:", error);
-            }
+        try {
+            await revealVotesMutation.mutateAsync();
+            setShowResults(true);
+            refetchVotes();
+        } catch (error) {
+            console.error("Failed to reveal results:", error);
         }
     };
 
@@ -139,27 +116,6 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                             {gameData?.game_code}
                         </span>
                     </div>
-                </div>
-            </div>
-
-            {/* Current Story */}
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                    Current Story
-                </h2>
-                <div className="border-l-4 border-blue-500 pl-4">
-                    <h3 className="text-lg font-medium text-gray-800 mb-2">
-                        {currentStory.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                        {currentStory.description}
-                    </p>
-                    {currentStory.acceptance_criteria && (
-                        <div className="text-sm text-gray-500">
-                            <strong>Acceptance Criteria:</strong>{" "}
-                            {currentStory.acceptance_criteria}
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -251,7 +207,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
             </div>
 
             {/* Moderator Controls */}
-            {totalVotes > 0 && (
+            {user.is_moderator && totalVotes > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">
                         Moderator Controls

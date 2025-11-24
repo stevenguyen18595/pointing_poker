@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('votes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('story_id')->constrained()->onDelete('cascade');
+            $table->foreignId('game_id')->constrained()->onDelete('cascade');
             $table->foreignId('player_id')->constrained()->onDelete('cascade');
             $table->string('points_value'); // '0', '1', '2', '3', '5', '8', '13', '21', '34', '?', '☕'
             $table->timestamp('voted_at');
             $table->timestamps();
             
-            $table->unique(['story_id', 'player_id']); // One vote per player per story
+            $table->unique(['game_id', 'player_id']); // One vote per player per game
             $table->index('voted_at');
         });
     }

@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 
 interface JoinGameFormProps {
-    onJoin: (gameId: string, userName: string) => void;
+    onJoin: (gameId: string, userName: string, isModerator: boolean) => void;
     onBack: () => void;
 }
 
 const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
     const [gameId, setGameId] = useState<string>("");
     const [userName, setUserName] = useState<string>("");
+    const [isModerator, setIsModerator] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
 
     const handleSubmit = (e: React.FormEvent): void => {
@@ -24,7 +25,7 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
             return;
         }
 
-        onJoin(gameId.trim(), userName.trim());
+        onJoin(gameId.trim(), userName.trim(), isModerator);
     };
 
     return (
@@ -76,6 +77,23 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter your name"
                         />
+                    </div>
+
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="isModerator"
+                            checked={isModerator}
+                            onChange={(e) => setIsModerator(e.target.checked)}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label
+                            htmlFor="isModerator"
+                            className="ml-2 block text-sm text-gray-700"
+                        >
+                            Join as Moderator (can reveal votes and control
+                            game)
+                        </label>
                     </div>
 
                     {error && (
