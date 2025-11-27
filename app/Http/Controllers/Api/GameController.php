@@ -115,13 +115,13 @@ class GameController extends Controller
         // Check if player name already exists in the game
         $existingPlayer = $game->players()->where('name', $request->getPlayerName())->first();
         
-        if ($existingPlayer) {
-            throw ValidationException::withMessages([
-                'player_name' => 'Player name already exists in this game.',
-            ]);
+        $player = null;
+        if (!$existingPlayer) {
+            $player = Player::create($request->getPlayerData($game->id));    
         }
-
-        $player = Player::create($request->getPlayerData($game->id));
+        else {
+            $player = $existingPlayer;
+        }
 
         $game->load(['status']);
 

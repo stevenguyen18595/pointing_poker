@@ -3,7 +3,12 @@ import Card from "./Card";
 import { useGame } from "../queries/games";
 import { usePlayers } from "../queries/players";
 import { usePointValues } from "../queries/pointValues";
-import { useVotes, useSubmitVote, useRevealVotes } from "../queries/votes";
+import {
+    useVotes,
+    useSubmitVote,
+    useRevealVotes,
+    useResetVotes,
+} from "../queries/votes";
 import type { Player, PointValue, Vote } from "../types/api";
 
 type CardValue = number | string;
@@ -31,11 +36,13 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
         usePointValues();
 
     // Fetch votes for current game
-    const { data: votes = [], refetch: refetchVotes } = useVotes(gameId);
+    const { data: votes = [] as Vote[], refetch: refetchVotes } =
+        useVotes(gameId);
 
     // Mutations
     const submitVoteMutation = useSubmitVote(gameId);
     const revealVotesMutation = useRevealVotes(gameId);
+    const resetVotesMutation = useResetVotes(gameId);
 
     // Check if current user has voted
     const userVote = votes.find(
@@ -92,6 +99,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const startNewVoting = (): void => {
         setSelectedCard(null);
         setShowResults(false);
+        resetVotesMutation.mutateAsync();
     };
 
     const totalVotes = votes.length;
@@ -172,7 +180,12 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                         <Card
                             key={pointValue.id}
                             value={pointValue.value}
-                            isSelected={selectedCard === pointValue.value}
+                            isSelected={
+                                hasVoted
+                                    ? userVote?.point_value?.value ===
+                                      pointValue.value
+                                    : selectedCard === pointValue.value
+                            }
                             onClick={() => handleCardSelect(pointValue.value)}
                             disabled={hasVoted && !showResults}
                             className={pointValue.color_class as string}
