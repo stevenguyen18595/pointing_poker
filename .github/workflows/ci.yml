@@ -60,8 +60,12 @@ jobs:
 
       - name: Check syntax errors
         run: |
-          find app -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
-          if [ $? -eq 0 ]; then exit 1; fi
+          find app -name "*.php" -exec php -l {} \; > /tmp/syntax_check.txt 2>&1
+          if grep -q "Parse error" /tmp/syntax_check.txt; then
+            cat /tmp/syntax_check.txt
+            exit 1
+          fi
+          echo "✓ No syntax errors found"
 
       - name: Validate Laravel structure
         run: |
