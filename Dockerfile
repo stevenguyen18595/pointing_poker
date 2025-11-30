@@ -23,8 +23,11 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Install Node dependencies and build frontend
 RUN npm ci && npm run build
 
+# Verify build files exist
+RUN ls -la /var/www/public/build/ && cat /var/www/public/build/manifest.json
+
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public
 
 # Copy nginx config
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
