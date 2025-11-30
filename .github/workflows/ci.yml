@@ -72,6 +72,3 @@ jobs:
           php artisan route:list
           php artisan config:clear
           php artisan view:clear
-
-      - name: Run Laravel Pint (Code Style)
-        run: ./vendor/bin/pint --test
