@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+jobs:
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Check for build errors
+        run: |
+          if [ ! -d "public/build" ]; then
+            echo "Build directory not found!"
+            exit 1
+          fi
+
+  laravel-validation:
+    name: Laravel Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo, pdo_mysql, bcmath, gd, zip
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Check syntax errors
+        run: |
+          find app -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+          if [ $? -eq 0 ]; then exit 1; fi
+
+      - name: Validate Laravel structure
+        run: |
+          php artisan route:list
+          php artisan config:clear
+          php artisan view:clear
+
+      - name: Run Laravel Pint (Code Style)
+        run: ./vendor/bin/pint --test

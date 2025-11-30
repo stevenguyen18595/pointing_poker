@@ -1,4 +1,4 @@
-// Types for the Planning Poker API
+// Types for the Agile AF API
 export interface Game {
     id: number;
     name: string;

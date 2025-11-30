@@ -41,7 +41,7 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
                 </div>
 
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-                    Join Planning Poker
+                    Join Agile AF
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
