@@ -44,25 +44,44 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/ww
 # Copy nginx config
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 
+# Create PHP-FPM pool directory and configure TCP listening
+RUN mkdir -p /etc/php/8.3/fpm/pool.d && \
+    echo '[www]\n\
+user = www-data\n\
+group = www-data\n\
+listen = 127.0.0.1:9000\n\
+listen.owner = www-data\n\
+listen.group = www-data\n\
+pm = dynamic\n\
+pm.max_children = 5\n\
+pm.start_servers = 2\n\
+pm.min_spare_servers = 1\n\
+pm.max_spare_servers = 3' > /etc/php/8.3/fpm/pool.d/www.conf
+
 # Copy supervisor config
 RUN echo '[supervisord]\n\
 nodaemon=true\n\
+user=root\n\
 \n\
 [program:php-fpm]\n\
-command=php-fpm\n\
+command=/usr/sbin/php-fpm8.3 -F\n\
 autostart=true\n\
 autorestart=true\n\
+stdout_logfile=/var/log/supervisor/php-fpm.log\n\
+stderr_logfile=/var/log/supervisor/php-fpm.log\n\
 \n\
 [program:nginx]\n\
-command=nginx -g "daemon off;"\n\
+command=/usr/sbin/nginx -g "daemon off;"\n\
 autostart=true\n\
-autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
+autorestart=true\n\
+stdout_logfile=/var/log/supervisor/nginx.log\n\
+stderr_logfile=/var/log/supervisor/nginx.log' > /etc/supervisor/conf.d/supervisord.conf
+
+# Create log directory for supervisor
+RUN mkdir -p /var/log/supervisor
 
 # Expose port
 EXPOSE 8080
-
-# Update nginx to listen on 8080
-RUN sed -i 's/listen 80;/listen 8080;/g' /etc/nginx/sites-available/default
 
 # Start supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

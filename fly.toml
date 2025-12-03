@@ -1,5 +1,5 @@
 app = "pointing-poker-f5v0ma"
-primary_region = "sea"
+primary_region = "sjc"
 
 [env]
   APP_ENV = "production"
