@@ -172,53 +172,93 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
             </div>
 
             {/* Voting Cards */}
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Select Your Estimate
-                </h3>
-                <div className="grid grid-cols-6 md:grid-cols-11 gap-3">
-                    {activePointValues.map((pointValue: PointValue) => (
-                        <Card
-                            key={pointValue.id}
-                            value={pointValue.value}
-                            isSelected={
-                                hasVoted
-                                    ? userVote?.point_value?.value ===
-                                      pointValue.value
-                                    : selectedCard === pointValue.value
-                            }
-                            onClick={() => handleCardSelect(pointValue.value)}
-                            disabled={hasVoted && !showResults}
-                            className={pointValue.color_class as string}
-                        />
-                    ))}
+            {!user.is_moderator ? (
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        Select Your Estimate
+                    </h3>
+                    <div className="grid grid-cols-6 md:grid-cols-11 gap-3">
+                        {activePointValues.map((pointValue: PointValue) => (
+                            <Card
+                                key={pointValue.id}
+                                value={pointValue.value}
+                                isSelected={
+                                    hasVoted
+                                        ? userVote?.point_value?.value ===
+                                          pointValue.value
+                                        : selectedCard === pointValue.value
+                                }
+                                onClick={() =>
+                                    handleCardSelect(pointValue.value)
+                                }
+                                disabled={hasVoted && !showResults}
+                                className={pointValue.color_class as string}
+                            />
+                        ))}
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        {!hasVoted && selectedCard !== null && (
+                            <button
+                                onClick={submitVote}
+                                disabled={submitVoteMutation.isPending}
+                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                            >
+                                {submitVoteMutation.isPending
+                                    ? "Submitting..."
+                                    : "Submit Vote"}
+                            </button>
+                        )}
+
+                        {hasVoted && !showResults && (
+                            <div className="text-center">
+                                <p className="text-green-600 font-semibold mb-4">
+                                    ✓ You voted: {userVote?.point_value?.value}
+                                </p>
+                                <p className="text-gray-600">
+                                    Waiting for other team members...
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-
-                <div className="mt-6 text-center">
-                    {!hasVoted && selectedCard !== null && (
-                        <button
-                            onClick={submitVote}
-                            disabled={submitVoteMutation.isPending}
-                            className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-                        >
-                            {submitVoteMutation.isPending
-                                ? "Submitting..."
-                                : "Submit Vote"}
-                        </button>
-                    )}
-
-                    {hasVoted && !showResults && (
-                        <div className="text-center">
-                            <p className="text-green-600 font-semibold mb-4">
-                                ✓ You voted: {userVote?.point_value?.value}
-                            </p>
+            ) : (
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div className="text-center py-8">
+                        <div className="text-gray-600 mb-2">
+                            <svg
+                                className="w-16 h-16 mx-auto mb-4 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                            </svg>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                Moderator View
+                            </h3>
                             <p className="text-gray-600">
-                                Waiting for other team members...
+                                As a moderator, you can observe the voting
+                                process and reveal results when ready.
+                            </p>
+                            <p className="text-sm text-gray-500 mt-2">
+                                Moderators cannot vote to maintain impartiality.
                             </p>
                         </div>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Moderator Controls */}
             {user.is_moderator && totalVotes > 0 && (
