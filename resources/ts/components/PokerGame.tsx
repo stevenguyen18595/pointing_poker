@@ -26,12 +26,10 @@ interface PokerGameProps {
 
 const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
+    const [showResults, setShowResults] = useState<boolean>(false);
 
     // Fetch game data
     const { data: gameData, isLoading: gameLoading } = useGame(gameId);
-
-    // Check if votes are revealed based on game status
-    const showResults = gameData?.status?.name === "revealed";
     const { data: players = [], isLoading: playersLoading } =
         usePlayers(gameId);
     const { data: pointValues = [], isLoading: pointValuesLoading } =
@@ -91,6 +89,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const revealResults = async (): Promise<void> => {
         try {
             await revealVotesMutation.mutateAsync();
+            setShowResults(true);
             refetchVotes();
         } catch (error) {
             console.error("Failed to reveal results:", error);
@@ -99,6 +98,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
 
     const startNewVoting = (): void => {
         setSelectedCard(null);
+        setShowResults(false);
         resetVotesMutation.mutateAsync();
     };
 
