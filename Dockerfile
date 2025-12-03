@@ -14,17 +14,29 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy application files
+# Copy all application files first
 COPY . /var/www
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Install Node dependencies and build frontend
-RUN npm ci && npm run build
+# Install Node dependencies
+RUN npm ci --verbose
 
-# Verify build files exist
-RUN ls -la /var/www/public/build/ && cat /var/www/public/build/manifest.json
+# Build frontend assets
+RUN npm run build
+
+# Run composer scripts after everything is in place
+RUN composer run-script post-autoload-dump
+
+# Verify build was successful
+RUN if [ ! -f "/var/www/public/build/manifest.json" ]; then \
+        echo "ERROR: Build failed - manifest.json not found" && \
+        exit 1; \
+    fi && \
+    echo "Build successful - manifest.json found:" && \
+    ls -la /var/www/public/build/ && \
+    head -5 /var/www/public/build/manifest.json
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public

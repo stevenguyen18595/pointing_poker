@@ -4,14 +4,15 @@
 
 # Docker
 docker-compose.yml
-docker/nginx/
+# docker/nginx/ - Allow for production Dockerfile
 # docker/php/ - Allow this directory for Dockerfile builds
 
 # Development
 .env
 .env.example
 README.md
-*.md
+API_DOCUMENTATION.md
+INTEGRATION_STATUS.md
 
 # Dependencies (will be installed in container)
 node_modules
@@ -21,9 +22,12 @@ vendor
 .vscode
 .idea
 
-# Tests
-tests/
-phpunit.xml
+# Tests (keep for production if needed)
+# tests/
+# phpunit.xml
 
 # CI
 .github/
+
+# Build outputs (will be regenerated)
+public/build/
