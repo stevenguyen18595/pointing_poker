@@ -83,5 +83,15 @@ RUN mkdir -p /var/log/supervisor
 # Expose port
 EXPOSE 8080
 
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Create entrypoint script to run migrations before starting services
+RUN echo '#!/bin/sh\n\
+echo "Running database migrations..."\n\
+php artisan migrate --force\n\
+echo "Seeding database..."\n\
+php artisan db:seed --force\n\
+echo "Starting services..."\n\
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+# Start with entrypoint
+CMD ["/entrypoint.sh"]
