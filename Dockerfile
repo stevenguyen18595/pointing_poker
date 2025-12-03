@@ -2,10 +2,10 @@ FROM php:8.3-fpm
 
 # Install system dependencies and Node.js
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev nginx supervisor \
+    git curl zip unzip libpng-dev libonig-dev libxml2-dev libzip-dev libpq-dev nginx supervisor \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
@@ -38,12 +38,8 @@ RUN if [ ! -f "/var/www/public/build/manifest.json" ]; then \
     ls -la /var/www/public/build/ && \
     head -5 /var/www/public/build/manifest.json
 
-# Create SQLite database and run migrations
-RUN touch /var/www/database/database.sqlite && \
-    php artisan migrate --force --seed
-
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public /var/www/database
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public
 
 # Copy nginx config
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
