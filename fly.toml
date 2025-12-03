@@ -1,25 +1,12 @@
-# fly.toml app configuration file generated for agile-af on 2025-11-30
-
-app = "agile-af"
+app = "pointing-poker-f5v0ma"
 primary_region = "sea"
-
-[build]
 
 [env]
   APP_ENV = "production"
-  APP_DEBUG = "false"
-  LOG_CHANNEL = "stderr"
-  LOG_STDERR_FORMATTER = "Monolog\\Formatter\\JsonFormatter"
-  SESSION_DRIVER = "database"
-  CACHE_DRIVER = "database"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ["app"]
 
 [[vm]]
   size = "shared-cpu-1x"
