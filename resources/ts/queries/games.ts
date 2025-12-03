@@ -35,6 +35,8 @@ export function useGame(gameId: string) {
             return response.data.data;
         },
         enabled: !!gameId,
+        refetchInterval: 1000, // Poll every 1 second for status updates
+        refetchIntervalInBackground: true, // Poll even when tab is not focused
     });
 }
 
