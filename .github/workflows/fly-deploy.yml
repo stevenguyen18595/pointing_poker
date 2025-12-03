@@ -9,15 +9,15 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # Prevent concurrent deployments
-    
+    concurrency: deploy-group # Prevent concurrent deployments
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
-      
+
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only
         env:

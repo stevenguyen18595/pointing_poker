@@ -64,14 +64,14 @@ nodaemon=true\n\
 user=root\n\
 \n\
 [program:php-fpm]\n\
-command=/usr/sbin/php-fpm8.3 -F\n\
+command=php-fpm -F -R\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/var/log/supervisor/php-fpm.log\n\
 stderr_logfile=/var/log/supervisor/php-fpm.log\n\
 \n\
 [program:nginx]\n\
-command=/usr/sbin/nginx -g "daemon off;"\n\
+command=nginx -g "daemon off;"\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/var/log/supervisor/nginx.log\n\
