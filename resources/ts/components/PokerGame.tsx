@@ -104,9 +104,15 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     };
 
     const totalVotes = votes.length;
-    const totalPlayers = players.length;
+
+    // Exclude moderators from voting progress calculation
+    const nonModeratorPlayers = players.filter(
+        (p: Player) => !p.is_moderator
+    ).length;
     const votingProgress =
-        totalPlayers > 0 ? Math.round((totalVotes / totalPlayers) * 100) : 0;
+        nonModeratorPlayers > 0
+            ? Math.round((totalVotes / nonModeratorPlayers) * 100)
+            : 0;
     const activePointValues = pointValues.filter(
         (pv: PointValue) => pv.is_active
     );
@@ -135,7 +141,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                         Voting Progress
                     </h3>
                     <span className="text-sm text-gray-600">
-                        {totalVotes} of {totalPlayers} votes
+                        {totalVotes} of {nonModeratorPlayers} votes
                     </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
