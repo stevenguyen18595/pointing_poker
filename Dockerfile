@@ -38,8 +38,12 @@ RUN if [ ! -f "/var/www/public/build/manifest.json" ]; then \
     ls -la /var/www/public/build/ && \
     head -5 /var/www/public/build/manifest.json
 
+# Create SQLite database and run migrations
+RUN touch /var/www/database/database.sqlite && \
+    php artisan migrate --force --seed
+
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public /var/www/database
 
 # Copy nginx config
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
