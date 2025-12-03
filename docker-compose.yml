@@ -57,11 +57,12 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: laravel_scheduler
-    command: php artisan schedule:work
+    command: sh -c "sleep 60 && php artisan schedule:work"
     working_dir: /var/www
     volumes:
       - ./:/var/www
     depends_on:
+      - app
       - db
     networks:
       - laravel
