@@ -108,6 +108,12 @@ class VoteController extends Controller
 
     public function reveal(Game $game): JsonResponse
     {
+        // Update game status to 'revealed'
+        $revealedStatus = \App\Models\GameStatus::where('name', 'revealed')->first();
+        if ($revealedStatus) {
+            $game->update(['status_id' => $revealedStatus->id]);
+        }
+
         $votes = $game->votes()
             ->with(['player', 'pointValue'])
             ->get();
@@ -124,6 +130,12 @@ class VoteController extends Controller
 
     public function reset(Game $game): JsonResponse
     {
+        // Update game status back to 'voting'
+        $votingStatus = \App\Models\GameStatus::where('name', 'voting')->first();
+        if ($votingStatus) {
+            $game->update(['status_id' => $votingStatus->id]);
+        }
+
         $game->votes()->delete();
 
         return response()->json([

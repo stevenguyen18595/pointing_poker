@@ -41,8 +41,8 @@ RUN if [ ! -f "/var/www/public/build/manifest.json" ]; then \
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public
 
-# Copy nginx config
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+# Copy nginx config for production (nginx + PHP-FPM in same container)
+COPY docker/nginx/default.prod.conf /etc/nginx/sites-available/default
 
 # Create PHP-FPM pool directory and configure TCP listening
 RUN mkdir -p /etc/php/8.3/fpm/pool.d && \
