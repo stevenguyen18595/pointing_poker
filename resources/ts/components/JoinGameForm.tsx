@@ -5,7 +5,7 @@ interface JoinGameFormProps {
     onBack: () => void;
 }
 
-const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
+export const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
     const [gameId, setGameId] = useState<string>("");
     const [userName, setUserName] = useState<string>("");
     const [isModerator, setIsModerator] = useState<boolean>(false);
@@ -113,5 +113,3 @@ const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
         </div>
     );
 };
-
-export default JoinGameForm;

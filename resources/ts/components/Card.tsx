@@ -6,7 +6,7 @@ interface CardProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     onClick: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ value, isSelected, onClick }) => {
+export const Card: React.FC<CardProps> = ({ value, isSelected, onClick }) => {
     return (
         <button
             onClick={onClick}
@@ -24,5 +24,3 @@ const Card: React.FC<CardProps> = ({ value, isSelected, onClick }) => {
         </button>
     );
 };
-
-export default Card;

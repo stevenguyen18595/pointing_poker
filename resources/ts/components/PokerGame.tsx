@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import Card from "./Card";
+import { Card } from "./Card";
 import { useGame } from "../queries/games";
-import { usePlayers } from "../queries/players";
+import { usePlayers, useRemovePlayer } from "../queries/players";
 import { usePointValues } from "../queries/pointValues";
 import {
     useVotes,
@@ -24,7 +24,7 @@ interface PokerGameProps {
     user: User;
 }
 
-const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
+export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
 
     // Fetch game data
@@ -46,7 +46,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const submitVoteMutation = useSubmitVote(gameId);
     const revealVotesMutation = useRevealVotes(gameId);
     const resetVotesMutation = useResetVotes(gameId);
-
+    const removePlayerMutation = useRemovePlayer(gameId);
     // Check if current user has voted
     const userVote = votes.find(
         (v: Vote) => v.player_id.toString() === user.id
@@ -63,6 +63,14 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
             </div>
         );
     }
+
+    const handleRemovePlayer = async (playerId: string) => {
+        try {
+            await removePlayerMutation.mutateAsync(playerId);
+        } catch (error) {
+            console.error("Failed to remove player:", error);
+        }
+    };
 
     const handleCardSelect = (value: CardValue): void => {
         if (hasVoted && !showResults) return;
@@ -161,16 +169,29 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                         return (
                             <div
                                 key={player.id}
-                                className={`px-3 py-1 rounded-full text-sm ${
+                                className={`px-3 py-1 rounded-full text-sm  ${
                                     hasPlayerVoted
                                         ? "bg-green-100 text-green-800"
                                         : "bg-gray-100 text-gray-600"
                                 }`}
                             >
                                 {player.name}
-                                {hasPlayerVoted && (
+                                {hasPlayerVoted ? (
                                     <span className="ml-1">✓</span>
-                                )}
+                                ) : !player.is_moderator &&
+                                  user.is_moderator ? (
+                                    <button
+                                        className="ps-1 hover:cursor-pointer hover:scale-110 hover:text-red-600 font-bold"
+                                        type="button"
+                                        onClick={() =>
+                                            handleRemovePlayer(
+                                                player.id.toString()
+                                            )
+                                        }
+                                    >
+                                        x
+                                    </button>
+                                ) : null}
                             </div>
                         );
                     })}

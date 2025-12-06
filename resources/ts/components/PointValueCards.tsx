@@ -1,7 +1,7 @@
 import React from "react";
 import { useActivePointValues } from "../queries";
 
-const PointValueCards: React.FC = () => {
+export const PointValueCards: React.FC = () => {
     const { data: pointValues, isLoading, error } = useActivePointValues();
 
     if (isLoading) {
@@ -49,5 +49,3 @@ const PointValueCards: React.FC = () => {
         </div>
     );
 };
-
-export default PointValueCards;

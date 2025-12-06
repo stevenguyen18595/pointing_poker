@@ -3,9 +3,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "../lib/queryClient";
 import PokerGame from "./PokerGame";
-import JoinGameForm from "./JoinGameForm";
+import { JoinGameForm } from "./JoinGameForm";
 import { useCreateGame, useJoinGame } from "../queries/games";
-import ApiTestComponent from "./ApiTestComponent";
 
 type ViewType = "home" | "join" | "game" | "create";
 
