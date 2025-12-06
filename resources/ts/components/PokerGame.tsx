@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "./Card";
 import { useGame } from "../queries/games";
 import { usePlayers, useRemovePlayer } from "../queries/players";
@@ -52,6 +52,13 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
         (v: Vote) => v.player_id.toString() === user.id
     );
     const hasVoted = !!userVote;
+
+    // Clear selection when user vote is removed
+    useEffect(() => {
+        if (!userVote) {
+            setSelectedCard(null);
+        }
+    }, [userVote]);
 
     // Loading state
     const isLoading = gameLoading || playersLoading || pointValuesLoading;
@@ -181,7 +188,7 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                                 ) : !player.is_moderator &&
                                   user.is_moderator ? (
                                     <button
-                                        className="ps-1 hover:cursor-pointer hover:scale-110 hover:text-red-600 font-bold"
+                                        className="ps-1 hover:cursor-pointer hover:scale-120 hover:text-red-600 font-bold"
                                         type="button"
                                         onClick={() =>
                                             handleRemovePlayer(
