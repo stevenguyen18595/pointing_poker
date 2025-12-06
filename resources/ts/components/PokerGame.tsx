@@ -53,12 +53,14 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     );
     const hasVoted = !!userVote;
 
-    // Clear selection when user vote is removed
+    // Sync selection with current vote
     useEffect(() => {
-        if (!userVote) {
+        if (userVote?.point_value?.value) {
+            setSelectedCard(userVote.point_value.value);
+        } else if (!userVote) {
             setSelectedCard(null);
         }
-    }, [userVote]);
+    }, [userVote, userVote?.point_value?.value]);
 
     // Loading state
     const isLoading = gameLoading || playersLoading || pointValuesLoading;
@@ -80,12 +82,12 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     };
 
     const handleCardSelect = (value: CardValue): void => {
-        if (hasVoted && !showResults) return;
+        if (showResults) return; // Only prevent selection when results are revealed
         setSelectedCard(value);
     };
 
     const submitVote = async (): Promise<void> => {
-        if (selectedCard !== null && !hasVoted) {
+        if (selectedCard !== null) {
             try {
                 const pointValue = pointValues.find(
                     (pv: PointValue) => pv.value === selectedCard.toString()
@@ -216,23 +218,18 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                             <Card
                                 key={pointValue.id}
                                 value={pointValue.value}
-                                isSelected={
-                                    hasVoted
-                                        ? userVote?.point_value?.value ===
-                                          pointValue.value
-                                        : selectedCard === pointValue.value
-                                }
+                                isSelected={selectedCard === pointValue.value}
                                 onClick={() =>
                                     handleCardSelect(pointValue.value)
                                 }
-                                disabled={hasVoted && !showResults}
+                                disabled={showResults}
                                 className={pointValue.color_class as string}
                             />
                         ))}
                     </div>
 
                     <div className="mt-6 text-center">
-                        {!hasVoted && selectedCard !== null && (
+                        {selectedCard !== null && !showResults && (
                             <button
                                 onClick={submitVote}
                                 disabled={submitVoteMutation.isPending}
@@ -240,12 +237,14 @@ export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                             >
                                 {submitVoteMutation.isPending
                                     ? "Submitting..."
+                                    : hasVoted
+                                    ? "Change Vote"
                                     : "Submit Vote"}
                             </button>
                         )}
 
                         {hasVoted && !showResults && (
-                            <div className="text-center">
+                            <div className="text-center mt-1">
                                 <p className="text-green-600 font-semibold mb-4">
                                     ✓ You voted: {userVote?.point_value?.value}
                                 </p>
