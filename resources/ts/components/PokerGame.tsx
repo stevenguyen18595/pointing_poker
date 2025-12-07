@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import Card from "./Card";
+import React, { useState, useEffect } from "react";
+import { Card } from "./Card";
 import { useGame } from "../queries/games";
-import { usePlayers } from "../queries/players";
+import { usePlayers, useRemovePlayer } from "../queries/players";
 import { usePointValues } from "../queries/pointValues";
 import {
     useVotes,
@@ -24,7 +24,7 @@ interface PokerGameProps {
     user: User;
 }
 
-const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
+export const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
 
     // Fetch game data
@@ -46,12 +46,21 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
     const submitVoteMutation = useSubmitVote(gameId);
     const revealVotesMutation = useRevealVotes(gameId);
     const resetVotesMutation = useResetVotes(gameId);
-
+    const removePlayerMutation = useRemovePlayer(gameId);
     // Check if current user has voted
     const userVote = votes.find(
         (v: Vote) => v.player_id.toString() === user.id
     );
     const hasVoted = !!userVote;
+
+    // Sync selection with current vote
+    useEffect(() => {
+        if (userVote?.point_value?.value) {
+            setSelectedCard(userVote.point_value.value);
+        } else if (!userVote) {
+            setSelectedCard(null);
+        }
+    }, [userVote, userVote?.point_value?.value]);
 
     // Loading state
     const isLoading = gameLoading || playersLoading || pointValuesLoading;
@@ -64,13 +73,21 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
         );
     }
 
+    const handleRemovePlayer = async (playerId: string) => {
+        try {
+            await removePlayerMutation.mutateAsync(playerId);
+        } catch (error) {
+            console.error("Failed to remove player:", error);
+        }
+    };
+
     const handleCardSelect = (value: CardValue): void => {
-        if (hasVoted && !showResults) return;
+        if (showResults) return; // Only prevent selection when results are revealed
         setSelectedCard(value);
     };
 
     const submitVote = async (): Promise<void> => {
-        if (selectedCard !== null && !hasVoted) {
+        if (selectedCard !== null) {
             try {
                 const pointValue = pointValues.find(
                     (pv: PointValue) => pv.value === selectedCard.toString()
@@ -123,7 +140,7 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                        {gameData?.name || "Agile AF Game"}
+                        {gameData?.name || "Pointify Game"}
                     </h1>
                     <div className="text-sm text-gray-600">
                         Game Code:{" "}
@@ -161,16 +178,29 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                         return (
                             <div
                                 key={player.id}
-                                className={`px-3 py-1 rounded-full text-sm ${
+                                className={`px-3 py-1 rounded-full text-sm  ${
                                     hasPlayerVoted
                                         ? "bg-green-100 text-green-800"
                                         : "bg-gray-100 text-gray-600"
                                 }`}
                             >
                                 {player.name}
-                                {hasPlayerVoted && (
+                                {hasPlayerVoted ? (
                                     <span className="ml-1">✓</span>
-                                )}
+                                ) : !player.is_moderator &&
+                                  user.is_moderator ? (
+                                    <button
+                                        className="ps-1 hover:cursor-pointer hover:scale-120 hover:text-red-600 font-bold"
+                                        type="button"
+                                        onClick={() =>
+                                            handleRemovePlayer(
+                                                player.id.toString()
+                                            )
+                                        }
+                                    >
+                                        x
+                                    </button>
+                                ) : null}
                             </div>
                         );
                     })}
@@ -188,23 +218,18 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                             <Card
                                 key={pointValue.id}
                                 value={pointValue.value}
-                                isSelected={
-                                    hasVoted
-                                        ? userVote?.point_value?.value ===
-                                          pointValue.value
-                                        : selectedCard === pointValue.value
-                                }
+                                isSelected={selectedCard === pointValue.value}
                                 onClick={() =>
                                     handleCardSelect(pointValue.value)
                                 }
-                                disabled={hasVoted && !showResults}
+                                disabled={showResults}
                                 className={pointValue.color_class as string}
                             />
                         ))}
                     </div>
 
                     <div className="mt-6 text-center">
-                        {!hasVoted && selectedCard !== null && (
+                        {selectedCard !== null && !showResults && (
                             <button
                                 onClick={submitVote}
                                 disabled={submitVoteMutation.isPending}
@@ -212,12 +237,14 @@ const PokerGame: React.FC<PokerGameProps> = ({ gameId, user }) => {
                             >
                                 {submitVoteMutation.isPending
                                     ? "Submitting..."
+                                    : hasVoted
+                                    ? "Change Vote"
                                     : "Submit Vote"}
                             </button>
                         )}
 
                         {hasVoted && !showResults && (
-                            <div className="text-center">
+                            <div className="text-center mt-1">
                                 <p className="text-green-600 font-semibold mb-4">
                                     ✓ You voted: {userVote?.point_value?.value}
                                 </p>

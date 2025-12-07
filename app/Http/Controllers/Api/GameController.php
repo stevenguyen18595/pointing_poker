@@ -11,7 +11,6 @@ use App\Http\Resources\GameResource;
 use App\Http\Resources\PlayerResource;
 use App\Models\Game;
 use App\Models\Player;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
@@ -65,7 +64,7 @@ class GameController extends Controller
             'players',
             'votes.pointValue',
         ]);
-        
+
         $game->loadCount(['players', 'votes']);
 
         return response()->json([
@@ -114,12 +113,11 @@ class GameController extends Controller
 
         // Check if player name already exists in the game
         $existingPlayer = $game->players()->where('name', $request->getPlayerName())->first();
-        
+
         $player = null;
         if (!$existingPlayer) {
-            $player = Player::create($request->getPlayerData($game->id));    
-        }
-        else {
+            $player = Player::create($request->getPlayerData($game->id));
+        } else {
             $player = $existingPlayer;
         }
 

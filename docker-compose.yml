@@ -7,6 +7,7 @@ services:
     working_dir: /var/www
     volumes:
       - ./:/var/www
+      - vendor:/var/www/vendor
     networks:
       - laravel
 
@@ -60,10 +61,11 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: laravel_scheduler
-    command: sh -c "sleep 60 && php artisan schedule:work"
+    command: sh -c "sleep 300 && php artisan schedule:work"
     working_dir: /var/www
     volumes:
       - ./:/var/www
+      - vendor:/var/www/vendor
     depends_on:
       - app
       - db
@@ -76,3 +78,4 @@ networks:
 
 volumes:
   dbdata:
+  vendor:

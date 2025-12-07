@@ -3,9 +3,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "../lib/queryClient";
 import PokerGame from "./PokerGame";
-import JoinGameForm from "./JoinGameForm";
+import { JoinGameForm } from "./JoinGameForm";
 import { useCreateGame, useJoinGame } from "../queries/games";
-import ApiTestComponent from "./ApiTestComponent";
 
 type ViewType = "home" | "join" | "game" | "create";
 
@@ -38,7 +37,7 @@ const AppContent: React.FC = () => {
         try {
             const { game, player } = await createGameMutation.mutateAsync({
                 name: gameName,
-                description: `Agile AF session for ${gameName}`,
+                description: `Pointify session for ${gameName}`,
                 creator_name: userName,
             });
 
@@ -136,7 +135,7 @@ const AppContent: React.FC = () => {
         <div className="min-h-screen bg-gray-100 flex items-center justify-center">
             <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-                    Agile AF
+                    Pointify
                 </h1>
                 <div className="space-y-4">
                     <button
@@ -156,7 +155,7 @@ const AppContent: React.FC = () => {
                     </button>
                 </div>
                 <div className="mt-8 text-center text-sm text-gray-500">
-                    <p>Welcome to Agile AF!</p>
+                    <p>Welcome to Pointify!</p>
                     <p>Estimate story points with your team</p>
                 </div>
             </div>
