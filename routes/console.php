@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Clean up old games daily at 2am
-Schedule::command('games:cleanup')->dailyAt('02:00');
+// Scheduled tasks disabled to reduce costs
+// Schedule::command('games:cleanup')->dailyAt('02:00');
