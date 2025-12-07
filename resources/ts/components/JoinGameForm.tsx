@@ -5,7 +5,10 @@ interface JoinGameFormProps {
     onBack: () => void;
 }
 
-export const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) => {
+export const JoinGameForm: React.FC<JoinGameFormProps> = ({
+    onJoin,
+    onBack,
+}) => {
     const [gameId, setGameId] = useState<string>("");
     const [userName, setUserName] = useState<string>("");
     const [isModerator, setIsModerator] = useState<boolean>(false);
@@ -41,7 +44,7 @@ export const JoinGameForm: React.FC<JoinGameFormProps> = ({ onJoin, onBack }) =>
                 </div>
 
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-                    Join Agile AF
+                    Join Pointify
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

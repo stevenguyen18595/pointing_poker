@@ -15,7 +15,7 @@ export const config = {
         timeout: 10000,
     },
     app: {
-        name: (window as any)?.ENV?.APP_NAME || "Agile AF",
+        name: (window as any)?.ENV?.APP_NAME || "Pointify",
         url: (window as any)?.ENV?.APP_URL || window.location.origin,
     },
     features: {

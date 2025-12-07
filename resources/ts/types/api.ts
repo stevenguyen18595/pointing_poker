@@ -1,4 +1,4 @@
-// Types for the Agile AF API
+// Types for the Pointify API
 export interface Game {
     id: number;
     name: string;
